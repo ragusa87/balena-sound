@@ -32,6 +32,11 @@ fi
 mkdir -p $DESTINATION/playlists
 mkdir -p $DESTINATION/music
 
+# Wait for pulseaudio to start
+PORT=$(echo $PULSE_SERVER | awk -F: '{ print $3 }')
+PORT=${PORT:=4317}
+while [ "$(netstat -tln | grep $PORT)" == "" ]; do sleep 5; echo "Waiting for pulseaudio to start"; done
+
 # Start MPD
 mpdcommand=$(command -v mpd)
 
