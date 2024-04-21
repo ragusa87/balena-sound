@@ -69,6 +69,14 @@ services:
      - mpd_db:/var/lib/mpd/database"
      - mpd_state:/var/lib/mpd/state"
 
+  mpd-mpris:
+    build: ./plugins/mpd-mpris
+    restart: on-failure
+    network_mode: host
+    privileged: true
+    labels:
+      io.balena.features.dbus: 1
+
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
     restart: on-failure
