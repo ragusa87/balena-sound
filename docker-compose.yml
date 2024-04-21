@@ -71,6 +71,7 @@ services:
 
   mpd-mpris:
     build: ./plugins/mpd-mpris
+    restart: unless-stopped
     network_mode: host
     privileged: true
     labels:
