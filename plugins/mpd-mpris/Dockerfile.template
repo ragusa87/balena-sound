@@ -1,14 +1,19 @@
-FROM balenalib/%%BALENA_MACHINE_NAME%%-golang:latest as golang
-ENV PATH=/go/bin:$PATH
-RUN install_packages dbus
-RUN git clone https://github.com/natsukagami/mpd-mpris.git \
+FROM balenalib/%%BALENA_ARCH%%-debian-golang:latest as golang
+RUN install_packages dbus dbus-x11
+RUN set -xve \
+    && git clone https://github.com/natsukagami/mpd-mpris.git \
+    && mkdir -p /app/bin \
     && cd mpd-mpris \
-    && go build -v -o mpd-mpris cmd/mpd-mpris/*.go \
-    && mkdir -p /go/bin/ \
-    && cp mpd-mpris /go/bin/mpd-mpris \
+    && go build -v -o /app/bin/mpd-mpris cmd/mpd-mpris/*.go \
     && cd .. \
     && rm -rf mpd-mpris
 
+FROM balenalib/%%BALENA_ARCH%%-debian as base
+ENV PATH=/app/bin:$PATH
+RUN mkdir -p /app/bin
+COPY --from=golang /app/bin/mpd-mpris /app/bin/mpd-mpris
+
+WORKDIR /app
 COPY start.sh /go/start.sh
 CMD ["/bin/sh", "/go/start.sh"]
 

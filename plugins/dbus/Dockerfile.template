@@ -1,0 +1,10 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-alpine
+RUN install_packages dbus
+
+WORKDIR /usr/src/app
+
+COPY entry.sh ./
+
+COPY *.conf ./
+
+ENTRYPOINT  ["sh","./entry.sh"]
