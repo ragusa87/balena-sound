@@ -4,7 +4,6 @@ volumes:
   spotifycache:
   mpd_db:
   mpd_state:
-  dbus:
 
 services:
   # Core services
@@ -76,26 +75,19 @@ services:
     privileged: true
     labels:
       io.balena.features.dbus: 1
-    volumes:
-      - dbus:/run/dbus
     environment:
-      DBUS_SESSION_BUS_ADDRESS: unix:path=/run/dbus/session.sock
+      DBUS_SESSION_BUS_ADDRESS: tcp:host=dbus-session,port=55884
   dbus-session:
     build: ./plugins/dbus
     environment:
-      DBUS_ADDRESS: unix:path=/run/dbus/session.sock
+      DBUS_ADDRESS: tcp:host=0.0.0.0,bind=0.0.0.0,port=55884
       DBUS_CONFIG: session.conf
-
-    volumes:
-      - dbus:/run/dbus
     restart: always
 
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
-    volumes:
-      - dbus:/run/dbus
     environment:
-      DBUS_SESSION_BUS_ADDRESS: unix:path=/run/dbus/session.sock
+      DBUS_SESSION_BUS_ADDRESS: tcp:host=dbus-session,port=55884
     restart: on-failure
     network_mode: host
     privileged: true
