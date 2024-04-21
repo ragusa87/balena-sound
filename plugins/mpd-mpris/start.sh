@@ -9,8 +9,8 @@ fi
 
 # Parse config
 
-DEFAULTHOST=$(ip route | awk '/default / { print $3 }')
-#DEFAULTHOST="localhost"
+#DEFAULTHOST=$(ip route | awk '/default / { print $3 }')
+DEFAULTHOST="localhost"
 MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULTHOST"}
 
 
