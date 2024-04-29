@@ -69,6 +69,8 @@ services:
     cap_add:
       - SYS_ADMIN
       - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
     labels:
       io.balena.features.dbus: 1
   mpd:
