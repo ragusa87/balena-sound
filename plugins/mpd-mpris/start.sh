@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -e
+set -ex
 
 # Exit if requested
 if [ -n "$SOUND_DISABLE_MPD_MPRIS" ]; then
@@ -9,11 +9,12 @@ fi
 
 # Parse config
 
-#DEFAULTHOST=$(ip route | awk '/default / { print $3 }')
-DEFAULTHOST="localhost"
-MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULTHOST"}
+#DEFAULT_HOST=$(ip route | awk '/default / { print $3 }')
+DEFAULT_HOST="localhost"
+MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULT_HOST"}
 
 
 RUN_COMMAND=$(command -v mpd-mpris)
-set -- $RUN_COMMAND -no-instance --host $MPD_HOST "$@"
+set -- ${RUN_COMMAND} -no-instance -host "${MPD_HOST}" "$@"
+#set -- /bin/bash -c "tail -f /dev/null" "$@"
 exec "$@"

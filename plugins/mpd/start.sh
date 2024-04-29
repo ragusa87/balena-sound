@@ -14,19 +14,30 @@ if [[ -z $DEVNAME ]]; then
 fi
 
 if [[ ! -e "$DEVNAME" ]]; then
-  echo "Device $DEVNAME not found, exiting..."
-  exit 1
+  echo "Device $DEVNAME not found..."
 fi
 
-# Mount external filesystem
-# Doc: https://docs.balena.io/learn/develop/runtime/#mounting-external-storage-media
-if findmnt -rno SOURCE,TARGET $DEVNAME > /dev/null; then
-    echo "Device $DEVNAME is already mounted!"
+DESTINATION_FALLBACK=/var/lib/mpd/fallback
+DESTINATION=/var/lib/mpd
+
+if [[ -e "$DEVNAME" ]]; then
+  # Mount external filesystem
+  # Doc: https://docs.balena.io/learn/develop/runtime/#mounting-external-storage-media
+  if findmnt -rno SOURCE,TARGET $DEVNAME > /dev/null; then
+      echo "Device $DEVNAME is already mounted!"
+  else
+      echo "Mounting $DEVNAME to $DESTINATION"
+      mkdir -p $DESTINATION
+      mount "$DEVNAME" "$DESTINATION"
+  fi
 else
-    DESTINATION=/var/lib/mpd
-    echo "Mounting $DEVNAME to $DESTINATION"
-    mkdir -p $DESTINATION 
-    mount "$DEVNAME" "$DESTINATION"
+  echo "Device $DEVNAME not found, using fallback..."
+  rm -Rf ${DESTINATION}/*
+  rm -Rf ${DESTINATION_FALLBACK}/*
+  mkdir -p ${DESTINATION_FALLBACK}/playlists && ln -s ${DESTINATION_FALLBACK}/playlists ${DESTINATION}/playlists
+  mkdir -p ${DESTINATION_FALLBACK}/music && ln -s ${DESTINATION_FALLBACK}/music ${DESTINATION}/music
+  touch ${DESTINATION_FALLBACK}/database && ln -s ${DESTINATION_FALLBACK}/database ${DESTINATION}/database
+  touch ${DESTINATION_FALLBACK}/state && ln -s ${DESTINATION_FALLBACK}/state ${DESTINATION}/state
 fi
 
 mkdir -p $DESTINATION/playlists

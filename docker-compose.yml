@@ -2,9 +2,9 @@ version: "2"
 
 volumes:
   spotifycache:
-  mpd_db:
-  mpd_state:
-
+  dbus_session:
+  mpd:
+  mpd_fallback:
 services:
   # Core services
   # -- Required for a fully featured installation of balenaSound
@@ -16,7 +16,8 @@ services:
       io.balena.features.dbus: 1
     ports:
       - 4317:4317
-
+    environment:
+      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
   sound-supervisor:
     build:
       context: .
@@ -58,6 +59,17 @@ services:
     labels:
       io.balena.features.dbus: 1
 
+  dbus-session:
+    build: ./plugins/dbus
+    restart: on-failure
+    network_mode: host
+    privileged: true
+    volumes:
+      - dbus_session:/session/dbus
+    environment:
+      - DBUS_ADDRESS=unix:path=/session/dbus/session_bus_socket
+    labels:
+      io.balena.features.dbus: 1
   mpd:
     build: ./plugins/mpd
     restart: on-failure
@@ -66,36 +78,36 @@ services:
     labels:
       io.balena.features.dbus: 1
     volumes:
-     - mpd_db:/var/lib/mpd/database"
-     - mpd_state:/var/lib/mpd/state"
-
+     - mpd:/var/lib/mpd
+     - mpd_fallback:/var/lib/fallback
   mpd-mpris:
     build: ./plugins/mpd-mpris
     restart: unless-stopped
     network_mode: host
     privileged: true
+    volumes:
+      - dbus_session:/session/dbus
     labels:
       io.balena.features.dbus: 1
     environment:
-      DBUS_SESSION_BUS_ADDRESS: tcp:host=localhost,port=55884
-  dbus-session:
-    build: ./plugins/dbus
-    environment:
-      DBUS_ADDRESS: tcp:host=0.0.0.0,bind=0.0.0.0,port=55884
-      DBUS_CONFIG: session.conf
-    restart: always
-    network_mode: host
-    privileged: true
+      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
+      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/session/dbus/session_bus_socket'
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
     environment:
-      DBUS_SESSION_BUS_ADDRESS: tcp:host=localhost,port=55884
+      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
+      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/session/dbus/session_bus_socket'
+    volumes:
+      - dbus_session:/session/dbus
     restart: on-failure
     network_mode: host
     privileged: true
     labels:
       io.balena.features.dbus: 1
-
+  avahi:
+    build: ./plugins/avahi
+    network_mode: host
+    restart: on-failure
   spotify:
     build: ./plugins/spotify
     restart: on-failure
