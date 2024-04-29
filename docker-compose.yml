@@ -2,7 +2,6 @@ version: "2"
 
 volumes:
   spotifycache:
-  dbus_session:
   mpd:
   mpd_fallback:
 services:
@@ -64,10 +63,8 @@ services:
     restart: on-failure
     network_mode: host
     privileged: true
-    volumes:
-      - dbus_session:/session/dbus
     environment:
-      - DBUS_ADDRESS=unix:path=/session/dbus/session_bus_socket
+      - DBUS_CONFIG=session.conf
     labels:
       io.balena.features.dbus: 1
   mpd:
@@ -85,25 +82,33 @@ services:
     restart: unless-stopped
     network_mode: host
     privileged: true
-    volumes:
-      - dbus_session:/session/dbus
     labels:
       io.balena.features.dbus: 1
     environment:
       - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
-      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/session/dbus/session_bus_socket'
+      - 'container=docker'
+      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55884'
+    depends_on:
+      - mpd
+      - dbus-session
+    cap_add:
+      - SYS_ADMIN
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
     environment:
       - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
-      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/session/dbus/session_bus_socket'
-    volumes:
-      - dbus_session:/session/dbus
+      - 'container=docker'
+      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55884'
     restart: on-failure
     network_mode: host
     privileged: true
+    cap_add:
+      - SYS_ADMIN
     labels:
       io.balena.features.dbus: 1
+    depends_on:
+      - mpd
+      - dbus-session
   avahi:
     build: ./plugins/avahi
     network_mode: host
