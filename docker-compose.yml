@@ -87,23 +87,29 @@ services:
     environment:
       - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
       - 'container=docker'
-      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55884'
+      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
     depends_on:
       - mpd
       - dbus-session
     cap_add:
       - SYS_ADMIN
+      - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
     environment:
       - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
       - 'container=docker'
-      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55884'
+      - 'DBUS_SESSION_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
     restart: on-failure
     network_mode: host
     privileged: true
     cap_add:
       - SYS_ADMIN
+      - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
     labels:
       io.balena.features.dbus: 1
     depends_on:
