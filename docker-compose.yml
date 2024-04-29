@@ -3,6 +3,7 @@ version: "2"
 volumes:
   spotifycache:
   mpd:
+  dbus:
   mpd_fallback:
 services:
   # Core services
@@ -64,13 +65,15 @@ services:
     network_mode: host
     privileged: true
     environment:
-      - DBUS_CONFIG=session.conf
-      - DBUS_ADDRESS=tcp:host=127.0.0.1,bind=127.0.0.1,port=55885
+      DBUS_CONFIG: session.conf
+      DBUS_ADDRESS: unix:path=/run/dbus/session.sock
     cap_add:
       - SYS_ADMIN
       - SYS_RESOURCE
     security_opt:
       - 'apparmor:unconfined'
+    volumes:
+      - dbus:/run/dbus
     labels:
       io.balena.features.dbus: 1
   mpd:
@@ -90,10 +93,12 @@ services:
     privileged: true
     labels:
       io.balena.features.dbus: 1
+    volumes:
+      - dbus:/run/dbus
     environment:
-      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
-      - 'container=docker'
-      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55885'
+      DBUS_SYSTEM_BUS_ADDRESS: 'unix:path=/host/run/dbus/system_bus_socket'
+      container: docker
+      DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/dbus/session.sock'
     depends_on:
       - mpd
       - dbus-session
@@ -104,10 +109,12 @@ services:
       - 'apparmor:unconfined'
   mpc-control-with-ir:
     build: ./plugins/mpc-control-with-ir
+    volumes:
+      - dbus:/run/dbus
     environment:
-      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
-      - 'container=docker'
-      - 'DBUS_SESSION_BUS_ADDRESS=tcp:host=127.0.0.1,port=55885'
+      DBUS_SYSTEM_BUS_ADDRESS: 'unix:path=/host/run/dbus/system_bus_socket'
+      container: docker
+      DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/dbus/session.sock'
     restart: on-failure
     network_mode: host
     privileged: true
