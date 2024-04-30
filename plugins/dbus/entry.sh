@@ -9,7 +9,9 @@ CONFIG=${DBUS_CONFIG:-"session.conf"}
 echo "DBUS starting: $CONFIG $ADDRESS"
 
 mkdir -p /var/run/dbus/
-dbus-daemon --config-file=/usr/src/app/$CONFIG \
+export DBUS_VERBOSE=1
+
+exec dbus-daemon --config-file=/usr/src/app/$CONFIG \
 	    --nofork \
 	    --address=$ADDRESS \
 	    --print-address
