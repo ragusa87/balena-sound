@@ -13,8 +13,11 @@ FROM balenalib/amd64-debian:latest-run as base
 ENV PATH=/app/bin:$PATH
 RUN mkdir -p /app/bin
 COPY --from=golang /app/bin/mpd-mpris /app/bin/mpd-mpris
-RUN install_packages dbus dbus-x11
+
+RUN install_packages dbus dbus-x11 systemd
+
 WORKDIR /app
 COPY start.sh /go/start.sh
-ENTRYPOINT ["/go/start.sh"]
+ENTRYPOINT ["/bin/sh", "/go/start.sh"]
+CMD ["-dbus-auth='anonymous'"]
 

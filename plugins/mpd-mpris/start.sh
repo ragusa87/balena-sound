@@ -14,7 +14,7 @@ MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULT_HOST"}
 
 RUN_COMMAND=$(command -v mpd-mpris)
 # if command starts with an option, prepend mpd-mpris
-if [ "${1:0:1}" = '-' ]; then
+if [ -n "$1" ] && [ "$(echo "$1" | cut -c1)" = '-' ]; then
   set -- ${RUN_COMMAND} "$@"
 fi
 
