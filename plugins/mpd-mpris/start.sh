@@ -15,6 +15,6 @@ MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULT_HOST"}
 
 
 RUN_COMMAND=$(command -v mpd-mpris)
-set -- ${RUN_COMMAND} -no-instance -host "${MPD_HOST}" "$@"
+set -- ${RUN_COMMAND} -dbus-auth="anonymous" -no-instance -host "${MPD_HOST}" "$@"
 #set -- /bin/bash -c "tail -f /dev/null" "$@"
 exec "$@"

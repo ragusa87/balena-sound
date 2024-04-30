@@ -1,0 +1,220 @@
+diff --git a/cmd/mpd-mpris/main.go b/cmd/mpd-mpris/main.go
+index 9b8280c..8c0b298 100644
+--- a/cmd/mpd-mpris/main.go
++++ b/cmd/mpd-mpris/main.go
+@@ -12,8 +12,10 @@ import (
+ 	"strings"
+ 	"syscall"
+ 
++	"github.com/godbus/dbus/v5"
+ 	mpris "github.com/natsukagami/mpd-mpris"
+ 	"github.com/natsukagami/mpd-mpris/mpd"
++	"github.com/pkg/errors"
+ )
+ 
+ var (
+@@ -22,9 +24,9 @@ var (
+ 	port         int
+ 	optPassword  string
+ 	passwordFile string
+-
+-	noInstance bool
+-	instance   string
++	dbusAuth     string
++	noInstance   bool
++	instance     string
+ )
+ 
+ func init() {
+@@ -35,6 +37,8 @@ func init() {
+ 	flag.StringVar(&passwordFile, "pwd-file", "", "Path to the file containing the mpd server password.")
+ 	flag.BoolVar(&noInstance, "no-instance", false, "Set the MPRIS's interface as 'org.mpris.MediaPlayer2.mpd' instead of 'org.mpris.MediaPlayer2.mpd.instance#'")
+ 	flag.StringVar(&instance, "instance-name", "", "Set the MPRIS's interface as 'org.mpris.MediaPlayer2.mpd.{instance-name}'")
++	flag.StringVar(&dbusAuth, "dbus-auth", "", "Set the DBUS Auth method (anonymous, empty)")
++
+ }
+ 
+ func detectLocalSocket() {
+@@ -75,9 +79,66 @@ func getPassword() string {
+ 	return ""
+ }
+ 
+-func main() {
+-	flag.Parse()
+-	password := getPassword()
++func withAuth(oAuthMethod string) dbus.ConnOption {
++	methods := []dbus.Auth{}
++	log.Printf("dbus-auth: %s\n", oAuthMethod)
++	if oAuthMethod == "anonymous" {
++		methods = append(methods, dbus.AuthAnonymous())
++	}
++
++	if strings.HasPrefix(oAuthMethod, "AuthCookieSha1:") {
++		parts := strings.SplitN(oAuthMethod, ":", 3)
++		methods = append(methods, dbus.AuthCookieSha1(parts[1], parts[2]))
++	}
++
++	if strings.HasPrefix(oAuthMethod, "external:") {
++		parts := strings.SplitN(oAuthMethod, ":", 2)
++		methods = append(methods, dbus.AuthExternal(parts[1]))
++	}
++
++	return func(conn *dbus.Conn) error {
++		if len(methods) == 0 {
++			if err := conn.Auth(nil); err != nil {
++				return err
++			}
++
++		} else {
++			if err := conn.Auth(methods); err != nil {
++				return err
++			}
++		}
++		return nil
++	}
++}
++
++func doDbusConnection(oAuthMethod string) (*dbus.Conn, error) {
++	// Attempt to create DBUS connection
++	var (
++		dbusConn *dbus.Conn
++		err      error
++	)
++	if dbusConn, err = dbus.SessionBusPrivate(); err != nil {
++		return nil, errors.WithStack(err)
++	}
++
++	authCallback := withAuth(oAuthMethod)
++
++	if err = authCallback(dbusConn); err != nil {
++		dbusConn.Close()
++		dbusConn = nil
++		return nil, errors.WithStack(err)
++	}
++	if err = dbusConn.Hello(); err != nil {
++		dbusConn.Close()
++		dbusConn = nil
++		return nil, errors.WithStack(err)
++	}
++
++	return dbusConn, nil
++}
++
++func doMpdConnection() (*mpd.Client, error) {
++	var password = getPassword()
+ 	if len(addr) == 0 {
+ 		// For a description of what can be in the the MPD_HOST environment variable, see:
+ 		// https://www.musicpd.org/doc/mpc/html/#cmdoption-host
+@@ -105,12 +166,6 @@ func main() {
+ 		}
+ 	}
+ 
+-	// Attempt to create a MPD connection
+-	var (
+-		c   *mpd.Client
+-		err error
+-	)
+-
+ 	// Parse the full address
+ 	// If network is tcp, then we would ideally want a port attached. Else we juts take "addr"
+ 	var fullAddress string
+@@ -121,15 +176,13 @@ func main() {
+ 	}
+ 
+ 	if password == "" {
+-		c, err = mpd.Dial(network, fullAddress)
+-	} else {
+-		c, err = mpd.DialAuthenticated(network, fullAddress, password)
++		return mpd.Dial(network, fullAddress)
+ 	}
+ 
+-	if err != nil {
+-		log.Fatalf("Cannot connect to mpd: %+v", err)
+-	}
++	return mpd.DialAuthenticated(network, fullAddress, password)
++}
+ 
++func parseOps() []mpris.Option {
+ 	opts := []mpris.Option{}
+ 	if noInstance && instance != "" {
+ 		log.Fatalln("-no-instance cannot be used with -instance-name")
+@@ -140,14 +193,34 @@ func main() {
+ 	if instance != "" {
+ 		opts = append(opts, mpris.InstanceName(instance))
+ 	}
++	return opts
++}
+ 
+-	// start everything!
++func main() {
++	flag.Parse()
+ 
++	// clean exit
+ 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+ 	defer cancel()
+ 
+-	instance, err := mpris.NewInstance(c, opts...)
++	// Attempt to create a MPD+Dbus connection
++	var (
++		dbusConnection *dbus.Conn
++		mpdConnection  *mpd.Client
++		err            error
++	)
++
++	dbusConnection, err = doDbusConnection(dbusAuth)
++	if err != nil {
++		log.Fatalf("Cannot connect to DBUS: %+v", err)
++	}
++
++	mpdConnection, err = doMpdConnection()
++	if err != nil {
++		log.Fatalf("Cannot connect to MPD: %+v", err)
++	}
+ 
++	instance, err := mpris.NewInstance(mpdConnection, dbusConnection, parseOps())
+ 	if err != nil {
+ 		log.Fatalf("Cannot create a MPRIS instance: %+v", err)
+ 	}
+@@ -156,7 +229,7 @@ func main() {
+ 	log.Println("mpd-mpris running")
+ 
+ 	if err := instance.Start(ctx); err != nil {
+-		log.Printf("Error: %+v", err)
++		log.Printf("mpd-mpris error: %+v", err)
+ 	} else {
+ 		log.Println("mpd-mpris stopping")
+ 	}
+diff --git a/instance.go b/instance.go
+index 4d52eda..94a4a3f 100644
+--- a/instance.go
++++ b/instance.go
+@@ -36,7 +36,7 @@ func (ins *Instance) Close() error {
+ 		return errors.WithStack(err)
+ 	}
+ 	if err := ins.mpd.Close(); err != nil {
+-		return err
++		return errors.WithStack(err)
+ 	}
+ 	ins.mpd = nil
+ 	return nil
+@@ -48,15 +48,14 @@ func (ins *Instance) Name() string {
+ }
+ 
+ // NewInstance creates a new instance that takes care of the specified mpd.
+-func NewInstance(mpd *mpd.Client, opts ...Option) (ins *Instance, err error) {
+-	ins = &Instance{
+-		mpd: mpd,
++func NewInstance(mpd *mpd.Client, connection *dbus.Conn, opts []Option) (ins *Instance, err error) {
+ 
++	ins = &Instance{
++		mpd:  mpd,
++		dbus: connection,
+ 		name: fmt.Sprintf("org.mpris.MediaPlayer2.mpd.instance%d", os.Getpid()),
+ 	}
+-	if ins.dbus, err = dbus.SessionBus(); err != nil {
+-		return nil, errors.WithStack(err)
+-	}
++
+ 	// Apply options
+ 	for _, opt := range opts {
+ 		opt(ins)

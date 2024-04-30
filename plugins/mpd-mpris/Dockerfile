@@ -1,12 +1,10 @@
 FROM balenalib/amd64-ubuntu-golang:latest as golang
-
-
-# TODO Add AuthAnonymous support
-# https://github.com/keybase/dbus/blob/5aa21ea2c23a538784857945d7454f9bf83b7170/_examples/tcp_conn.go#L50
+COPY dbus-anonymous.patch /tmp/dbus-anonymous.patch
 RUN set -xve \
     && git clone https://github.com/natsukagami/mpd-mpris.git \
     && mkdir -p /app/bin \
     && cd mpd-mpris \
+    && git apply /tmp/dbus-anonymous.patch \
     && go build -v -o /app/bin/mpd-mpris cmd/mpd-mpris/*.go \
     && cd .. \
     && rm -rf mpd-mpris
