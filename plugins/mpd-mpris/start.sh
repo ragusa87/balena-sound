@@ -8,13 +8,20 @@ if [ -n "$SOUND_DISABLE_MPD_MPRIS" ]; then
 fi
 
 # Parse config
-
-#DEFAULT_HOST=$(ip route | awk '/default / { print $3 }')
 DEFAULT_HOST="localhost"
 MPD_HOST=${SOUND_MPD_HOST:-"$DEFAULT_HOST"}
 
 
 RUN_COMMAND=$(command -v mpd-mpris)
-set -- ${RUN_COMMAND} -dbus-auth="anonymous" -no-instance -host "${MPD_HOST}" "$@"
-#set -- /bin/bash -c "tail -f /dev/null" "$@"
+# if command starts with an option, prepend mpd-mpris
+if [ "${1:0:1}" = '-' ]; then
+  set -- ${RUN_COMMAND} "$@"
+fi
+
+# Add default arguments
+if [ "$1" = "${RUN_COMMAND}" ]; then
+  shift
+  set -- ${RUN_COMMAND} -no-instance -host "${MPD_HOST}" "$@"
+fi
+
 exec "$@"

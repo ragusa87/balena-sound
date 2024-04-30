@@ -16,5 +16,5 @@ RUN install_packages dbus dbus-x11 systemd
 
 WORKDIR /app
 COPY start.sh /go/start.sh
-CMD ["/bin/sh", "/go/start.sh"]
+CMD ["/bin/sh", "/go/start.sh", "-dbus-auth='anonymous'"]
 
