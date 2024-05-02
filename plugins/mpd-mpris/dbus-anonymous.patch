@@ -1,5 +1,5 @@
 diff --git a/cmd/mpd-mpris/main.go b/cmd/mpd-mpris/main.go
-index 9b8280c..8c0b298 100644
+index 9b8280c..d5c1299 100644
 --- a/cmd/mpd-mpris/main.go
 +++ b/cmd/mpd-mpris/main.go
 @@ -12,8 +12,10 @@ import (
@@ -35,7 +35,7 @@ index 9b8280c..8c0b298 100644
  }
  
  func detectLocalSocket() {
-@@ -75,9 +79,66 @@ func getPassword() string {
+@@ -75,9 +79,65 @@ func getPassword() string {
  	return ""
  }
  
@@ -60,16 +60,15 @@ index 9b8280c..8c0b298 100644
 +	}
 +
 +	return func(conn *dbus.Conn) error {
++		// If no methods are specified pass null so the default methods will be used
 +		if len(methods) == 0 {
-+			if err := conn.Auth(nil); err != nil {
-+				return err
-+			}
-+
-+		} else {
-+			if err := conn.Auth(methods); err != nil {
-+				return err
-+			}
++			methods = nil
 +		}
++
++		if err := conn.Auth(methods); err != nil {
++			return err
++		}
++
 +		return nil
 +	}
 +}
@@ -105,7 +104,7 @@ index 9b8280c..8c0b298 100644
  	if len(addr) == 0 {
  		// For a description of what can be in the the MPD_HOST environment variable, see:
  		// https://www.musicpd.org/doc/mpc/html/#cmdoption-host
-@@ -105,12 +166,6 @@ func main() {
+@@ -105,12 +165,6 @@ func main() {
  		}
  	}
  
@@ -118,7 +117,7 @@ index 9b8280c..8c0b298 100644
  	// Parse the full address
  	// If network is tcp, then we would ideally want a port attached. Else we juts take "addr"
  	var fullAddress string
-@@ -121,15 +176,13 @@ func main() {
+@@ -121,15 +175,13 @@ func main() {
  	}
  
  	if password == "" {
@@ -138,7 +137,7 @@ index 9b8280c..8c0b298 100644
  	opts := []mpris.Option{}
  	if noInstance && instance != "" {
  		log.Fatalln("-no-instance cannot be used with -instance-name")
-@@ -140,14 +193,34 @@ func main() {
+@@ -140,14 +192,34 @@ func main() {
  	if instance != "" {
  		opts = append(opts, mpris.InstanceName(instance))
  	}
@@ -175,7 +174,7 @@ index 9b8280c..8c0b298 100644
  	if err != nil {
  		log.Fatalf("Cannot create a MPRIS instance: %+v", err)
  	}
-@@ -156,7 +229,7 @@ func main() {
+@@ -156,7 +228,7 @@ func main() {
  	log.Println("mpd-mpris running")
  
  	if err := instance.Start(ctx); err != nil {
