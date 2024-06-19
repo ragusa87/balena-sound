@@ -13,3 +13,7 @@ set-default-sink balena-sound.input
 # balena-sound.output: Set to audio sink specified by audio block
 load-module module-loopback latency_msec=%INPUT_LATENCY% source=balena-sound.input.monitor %INPUT_SINK%
 load-module module-loopback latency_msec=%OUTPUT_LATENCY% source=balena-sound.output.monitor %OUTPUT_SINK%
+
+# Allow network access to snapcast sink
+load-module module-esound-protocol-tcp auth-anonymous=1
+
