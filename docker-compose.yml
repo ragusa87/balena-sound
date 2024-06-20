@@ -2,9 +2,8 @@ version: "2"
 
 volumes:
   spotifycache:
-  mpd_db:
-  mpd_state:
-
+  mpd:
+  mpd_fallback:
 services:
   # Core services
   # -- Required for a fully featured installation of balenaSound
