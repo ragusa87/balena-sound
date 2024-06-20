@@ -3,6 +3,7 @@ version: "2"
 volumes:
   spotifycache:
   mpd:
+  dbus:
   mpd_fallback:
 services:
   # Core services
@@ -15,7 +16,8 @@ services:
       io.balena.features.dbus: 1
     ports:
       - 4317:4317
-
+    environment:
+      - 'DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket'
   sound-supervisor:
     build:
       context: .
@@ -57,6 +59,23 @@ services:
     labels:
       io.balena.features.dbus: 1
 
+  dbus-session:
+    build: ./plugins/dbus
+    restart: on-failure
+    network_mode: host
+    privileged: true
+    environment:
+      DBUS_CONFIG: session.conf
+      DBUS_ADDRESS: unix:path=/run/dbus/session.sock
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
+    volumes:
+      - dbus:/run/dbus
+    labels:
+      io.balena.features.dbus: 1
   mpd:
     build: ./plugins/mpd
     restart: on-failure
@@ -65,9 +84,54 @@ services:
     labels:
       io.balena.features.dbus: 1
     volumes:
-     - mpd_db:/var/lib/mpd/database"
-     - mpd_state:/var/lib/mpd/state"
-
+     - mpd:/var/lib/mpd
+     - mpd_fallback:/var/lib/fallback
+  mpd-mpris:
+    build: ./plugins/mpd-mpris
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    labels:
+      io.balena.features.dbus: 1
+    volumes:
+      - dbus:/run/dbus
+    environment:
+      DBUS_SYSTEM_BUS_ADDRESS: 'unix:path=/host/run/dbus/system_bus_socket'
+      container: docker
+      DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/dbus/session.sock'
+    depends_on:
+      - mpd
+      - dbus-session
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
+  mpc-control-with-ir:
+    build: ./plugins/mpc-control-with-ir
+    volumes:
+      - dbus:/run/dbus
+    environment:
+      DBUS_SYSTEM_BUS_ADDRESS: 'unix:path=/host/run/dbus/system_bus_socket'
+      container: docker
+      DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/dbus/session.sock'
+    restart: on-failure
+    network_mode: host
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+    security_opt:
+      - 'apparmor:unconfined'
+    labels:
+      io.balena.features.dbus: 1
+    depends_on:
+      - mpd
+      - dbus-session
+  avahi:
+    build: ./plugins/avahi
+    network_mode: host
+    restart: on-failure
   spotify:
     build: ./plugins/spotify
     restart: on-failure

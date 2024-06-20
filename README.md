@@ -6,6 +6,8 @@ This is a fork of Balena-Sound project <https://github.com/balena-labs-projects/
 # Added features
 
 - Mount drive and start mpd
+- Control MPD via IR. Using a config file to map IR buttons to commands
+- Add MPRIS support to control MPD via DBus
 
 # Pi 4 fix USB drive speed
 
