@@ -7,6 +7,16 @@ This is a fork of Balena-Sound project <https://github.com/balena-labs-projects/
 
 - Mount drive and start mpd
 
+# Pi 4 fix USB drive speed
+
+lsusb
+vi /mnt/boot/config.txt
+
+```
+usb-storage.quirks=152d:1576:u
+```
+
+
 # IoTSound
 
 **Starter project enabling you to add multi-room audio streaming via Bluetooth, Airplay2, Spotify Connect and others to any old speakers or Hi-Fi using just a Raspberry Pi.**
