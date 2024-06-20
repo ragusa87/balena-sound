@@ -1,0 +1,4 @@
+[submodule "plugins/mpc-control-with-ir"]
+	path = plugins/mpc-control-with-ir
+	url = https://github.com/ragusa87/mpc-control-with-ir.git
+	branch = balena-sound
