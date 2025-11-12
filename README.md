@@ -1,6 +1,6 @@
 # IoTSound
 
-This is a fork of Balena-Sound project <https://github.com/balena-labs-projects/balena-sound>
+This is a fork of Balena-Sound project <https://github.com/iotsound/iotsound.git>
 
 
 # Added features
